@@ -8,3 +8,5 @@ import CompGeom.Halfplane
 import CompGeom.Line
 import CompGeom.Segment
 import CompGeom.Polygon
+import CompGeom.ConvexHull
+import CompGeom.ConvexPolygon
