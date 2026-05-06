@@ -44,6 +44,13 @@ lemma signedArea_self_left (a c : Pt) : signedArea a a c = 0 := by
 lemma signedArea_swap_ab (a b c : Pt) : signedArea a b c = - signedArea b a c := by
   simp only [signedArea]; ring
 
+/-- 循环置换三个顶点不改变带号面积。
+
+`signedArea a b c = signedArea b c a = signedArea c a b` —— 因为带号面积只依赖于
+有向三角形的"环绕方向"，不依赖于哪个顶点是起点。 -/
+lemma signedArea_cyclic (a b c : Pt) : signedArea a b c = signedArea b c a := by
+  simp only [signedArea]; ring
+
 @[simp]
 lemma mem_orientedHalfplane_iff {a b p : Pt} :
     p ∈ OrientedHalfplane a b ↔ 0 ≤ signedArea a b p :=

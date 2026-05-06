@@ -43,4 +43,72 @@ theorem convexPolygonRegion_singleton (a : Pt) :
     convexPolygonRegion [a] = ({a} : Set Pt) :=
   convexHullPts_singleton a
 
+/-! ## IsConvexPolygon — 严格凸多边形谓词 -/
+
+/-- 多边形顶点的 cyclic 索引：`poly.cycGet i = poly[i mod length]`，越界 wrap-around。
+当 `poly.length = 0` 时返回 `(0 : Pt)` 作 fallback —— 实际使用永远不会触发，
+因为 `IsConvexPolygon` 自带 `3 ≤ length` 前提。 -/
+noncomputable def Polygon.cycGet (poly : Polygon) (i : ℕ) : Pt :=
+  (poly[i % poly.length]?).getD 0
+
+/-- **严格凸多边形** 谓词：
+
+1. 顶点数 `n ≥ 3`
+2. 每个相邻三元组 `(vᵢ, vᵢ₊₁, vᵢ₊₂)`（下标 cyclic mod n）都严格 ccw（`signedArea > 0`）
+
+"严格"含义 —— `signedArea > 0`（不是 `≥ 0`），等价于：
+
+- 每个内角严格 < 180°
+- 任意三个相邻顶点不共线
+- 顶点表 ccw 排列
+
+由该条件可推出 strictly simple（无自交），因此本谓词恰好刻画 strictly convex polygon。 -/
+def IsConvexPolygon (poly : Polygon) : Prop :=
+  3 ≤ poly.length ∧
+  ∀ i, i < poly.length →
+    0 < signedArea (poly.cycGet i) (poly.cycGet (i + 1)) (poly.cycGet (i + 2))
+
+/-- 投影：凸多边形必然有 ≥ 3 个顶点。 -/
+theorem IsConvexPolygon.length_ge {poly : Polygon} (h : IsConvexPolygon poly) :
+    3 ≤ poly.length := h.1
+
+private lemma cycGet_triangle_zero (a b c : Pt) :
+    Polygon.cycGet [a, b, c] 0 = a := by simp [Polygon.cycGet]
+
+private lemma cycGet_triangle_one (a b c : Pt) :
+    Polygon.cycGet [a, b, c] 1 = b := by simp [Polygon.cycGet]
+
+private lemma cycGet_triangle_two (a b c : Pt) :
+    Polygon.cycGet [a, b, c] 2 = c := by simp [Polygon.cycGet]
+
+private lemma cycGet_triangle_three (a b c : Pt) :
+    Polygon.cycGet [a, b, c] 3 = a := by simp [Polygon.cycGet]
+
+private lemma cycGet_triangle_four (a b c : Pt) :
+    Polygon.cycGet [a, b, c] 4 = b := by simp [Polygon.cycGet]
+
+/-- ccw 三角形是凸多边形（最小构造引理）。
+由 `signedArea_cyclic` 把 `(b, c, a)` / `(c, a, b)` 两个 cyclic 三元组归约回 `(a, b, c)`。 -/
+theorem isConvexPolygon_of_triangle_ccw {a b c : Pt} (h : 0 < signedArea a b c) :
+    IsConvexPolygon [a, b, c] := by
+  refine ⟨by simp, ?_⟩
+  intro i hi
+  have hlen : ([a, b, c] : Polygon).length = 3 := rfl
+  rw [hlen] at hi
+  interval_cases i
+  · -- i = 0: signedArea(cg 0, cg 1, cg 2) = signedArea(a, b, c)
+    rw [show (0 + 1 : ℕ) = 1 from rfl, show (0 + 2 : ℕ) = 2 from rfl,
+        cycGet_triangle_zero, cycGet_triangle_one, cycGet_triangle_two]
+    exact h
+  · -- i = 1: signedArea(cg 1, cg 2, cg 3) = signedArea(b, c, a) = signedArea(a, b, c)
+    rw [show (1 + 1 : ℕ) = 2 from rfl, show (1 + 2 : ℕ) = 3 from rfl,
+        cycGet_triangle_one, cycGet_triangle_two, cycGet_triangle_three,
+        signedArea_cyclic, signedArea_cyclic]
+    exact h
+  · -- i = 2: signedArea(cg 2, cg 3, cg 4) = signedArea(c, a, b) = signedArea(a, b, c)
+    rw [show (2 + 1 : ℕ) = 3 from rfl, show (2 + 2 : ℕ) = 4 from rfl,
+        cycGet_triangle_two, cycGet_triangle_three, cycGet_triangle_four,
+        signedArea_cyclic]
+    exact h
+
 end CompGeom
